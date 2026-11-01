@@ -35,7 +35,8 @@
           "microphonePermission": "Pofi seni duyabilmek için mikrofona ihtiyaç duyar.",
           "speechRecognitionPermission": "Pofi söylediğin kelimeyi anlamak için konuşma tanıma kullanır."
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "scheme": "pofi",
     "experiments": {
