@@ -1,13 +1,16 @@
 {
   "expo": {
-    "name": "kids-english-game",
+    "name": "Pofi Adası",
     "slug": "kids-english-game",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "CADisableMinimumFrameDurationOnPhone": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +22,24 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Pofi seni duyabilmek için mikrofona ihtiyaç duyar.",
+          "speechRecognitionPermission": "Pofi söylediğin kelimeyi anlamak için konuşma tanıma kullanır."
+        }
+      ]
+    ],
+    "scheme": "pofi",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
