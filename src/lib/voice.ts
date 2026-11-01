@@ -1,43 +1,76 @@
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 
-// Başlangıçta cihazın kendi seslendirmesi; ana karakterler için ileride
-// AI seslendirme / gerçek seslendirmen dosyalarıyla değişecek (yol haritası).
+import { en, type Line } from '@/content/lines';
+import { voiceClips } from '@/content/voice-manifest';
+
+// Pofi'nin sesi. Önce ElevenLabs ile üretilmiş dosyaya bakar (voice-manifest);
+// yoksa cihazın seslendirmesine düşer. Satırlar sırayla, aralarında doğal duraklarla çalınır.
+// Yeni bir konuşma başlarsa önceki anında kesilir (çocuk dokununca eski cümle sürmesin).
 
 let enVoice: string | undefined;
+let trVoice: string | undefined;
 let voicesLoaded = false;
+let token = 0;
+let player: AudioPlayer | null = null;
 
-async function pickVoice() {
+async function pickVoices() {
   if (voicesLoaded) return;
   voicesLoaded = true;
   try {
     const voices = await Speech.getAvailableVoicesAsync();
-    const en = voices.filter((v) => v.language?.toLowerCase().startsWith('en'));
-    const preferred =
-      en.find((v) => /samantha|google us english|aria|jenny|ava|enhanced/i.test(`${v.name} ${v.identifier}`)) ??
-      en.find((v) => v.language === 'en-US') ??
-      en[0];
-    enVoice = preferred?.identifier;
+    const by = (lang: string) => voices.filter((v) => v.language?.toLowerCase().startsWith(lang));
+    const best = (list: typeof voices, pref: RegExp) =>
+      (list.find((v) => pref.test(`${v.name} ${v.identifier} ${v.quality ?? ''}`)) ?? list[0])?.identifier;
+    enVoice = best(
+      by('en').filter((v) => /en[-_]us/i.test(v.language)).length ? by('en').filter((v) => /en[-_]us/i.test(v.language)) : by('en'),
+      /enhanced|premium|neural|natural|samantha|aria|jenny|ava|google us/i,
+    );
+    trVoice = best(by('tr'), /enhanced|premium|neural|natural|yelda|emel|google/i);
   } catch {
-    // ses listesi alınamazsa dil koduyla devam edilir
+    // ses listesi alınamazsa dil koduyla devam
   }
 }
 
-/** İngilizce kelime/cümle: yavaş ve net, çocuk kulağına göre. */
-export async function sayEnglish(text: string, opts: { slow?: boolean } = {}) {
-  await pickVoice();
-  Speech.stop();
+const stripTags = (t: string) => t.replace(/\[[^\]]*\]\s*/g, '').trim();
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function playClip(source: number, my: number) {
   return new Promise<void>((resolve) => {
-    // Ses motoru 'bitti' olayını göndermezse oyun takılmasın
-    const guard = setTimeout(resolve, 1200 + text.length * 110);
+    try {
+      player?.remove();
+      const p = createAudioPlayer(source);
+      player = p;
+      const guard = setTimeout(resolve, 15000);
+      const sub = p.addListener('playbackStatusUpdate', (s) => {
+        if (s.didJustFinish || my !== token) {
+          clearTimeout(guard);
+          sub.remove();
+          resolve();
+        }
+      });
+      p.play();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+function speakDevice(l: Line, my: number) {
+  return new Promise<void>((resolve) => {
+    const text = stripTags(l.text);
+    const guard = setTimeout(resolve, 1500 + text.length * 110);
     const done = () => {
       clearTimeout(guard);
       resolve();
     };
+    if (my !== token) return done();
     Speech.speak(text, {
-      language: 'en-US',
-      voice: enVoice,
-      rate: opts.slow ? 0.7 : 0.85,
-      pitch: 1.1,
+      language: l.lang === 'en' ? 'en-US' : 'tr-TR',
+      voice: l.lang === 'en' ? enVoice : trVoice,
+      // Öğretmen temposu: İngilizce kelimeler yavaş ve net, Türkçe doğal hızda
+      rate: l.lang === 'en' ? (l.slow ? 0.62 : 0.8) : 0.98,
+      pitch: l.lang === 'en' ? 1.05 : 1.08,
       onDone: done,
       onStopped: done,
       onError: done,
@@ -45,29 +78,32 @@ export async function sayEnglish(text: string, opts: { slow?: boolean } = {}) {
   });
 }
 
-/** Pofi'nin Türkçe yönergesi (okuma bilmeyen 5–6 yaş için). */
-export function sayTurkish(text: string) {
+/** Satırları sırayla söyler. Yeni bir speak çağrısı öncekini keser. */
+export async function speak(lines: Line | Line[]) {
+  const list = Array.isArray(lines) ? lines : [lines];
+  const my = ++token;
   Speech.stop();
-  return new Promise<void>((resolve) => {
-    const guard = setTimeout(resolve, 1200 + text.length * 90);
-    const done = () => {
-      clearTimeout(guard);
-      resolve();
-    };
-    Speech.speak(text, {
-      language: 'tr-TR',
-      rate: 0.95,
-      pitch: 1.15,
-      onDone: done,
-      onStopped: done,
-      onError: done,
-    });
-  });
+  player?.pause();
+  await pickVoices();
+  for (const l of list) {
+    if (my !== token) return;
+    const clip = voiceClips[l.id];
+    if (clip) await playClip(clip, my);
+    else await speakDevice(l, my);
+    if (my !== token) return;
+    await wait(l.pauseAfter ?? 120);
+  }
 }
 
-export const stopVoice = () => Speech.stop();
+export function stopVoice() {
+  token++;
+  Speech.stop();
+  try {
+    player?.pause();
+  } catch {
+    // oynatıcı zaten kapandı
+  }
+}
 
-const praise = ['Great job!', 'Yes! Well done!', 'Super!', 'You did it!', 'Wow, amazing!'];
-const retry = ['Try again!', 'Almost! One more time.', 'Listen again.'];
-export const randomPraise = () => praise[Math.floor(Math.random() * praise.length)];
-export const randomRetry = () => retry[Math.floor(Math.random() * retry.length)];
+/** Serbest İngilizce metin (dinamik içerik, ör. kart üzerindeki kelime) */
+export const sayEnglish = (text: string, opts: { slow?: boolean } = {}) => speak(en(text, opts));

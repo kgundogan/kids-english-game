@@ -2,7 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
+import type { ChunkId } from '@/content/chunks';
 import type { Word } from '@/content/regions';
+
+/** Kelimenin hangi yoldan bilindiği. Bir kelime ancak farklı yollardan geçince "öğrendi" sayılır. */
+export type TestType = 'listen' | 'yesno' | 'find' | 'match' | 'speak' | 'read' | 'chunk' | 'alt' | 'parent';
+export type AgeBand = 'small' | 'mid' | 'big';
+export type Mastery = 'new' | 'met' | 'practicing' | 'learned';
 
 export type WordStat = {
   seen: number;
@@ -12,12 +18,19 @@ export type WordStat = {
   strength: number;
   lastSeen: number;
   collected: boolean;
+  /** Test türü → ilk denemede doğru sayısı */
+  passed: Partial<Record<TestType, number>>;
+  /** İlk denemede doğru bildiği farklı günler (son 7) */
+  goodDays: string[];
 };
 
 export type DayLog = { seconds: number; correct: number; wrong: number; spoken: number };
 
 export type Progress = {
   childName: string;
+  ageBand: AgeBand;
+  /** Kalıp → kaç kez tanıtıldı (Türkçe iskele ilk 2 kez) */
+  chunks: Partial<Record<ChunkId, number>>;
   stars: number;
   words: Record<string, WordStat>;
   steps: Record<string, number>;
@@ -27,10 +40,12 @@ export type Progress = {
   bonusDate: string;
 };
 
-const KEY = 'pofi.progress.v1';
+const KEY = 'pofi.progress.v2';
 
 const initial: Progress = {
   childName: '',
+  ageBand: 'small',
+  chunks: {},
   stars: 0,
   words: {},
   steps: {},
@@ -42,7 +57,22 @@ const initial: Progress = {
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
-const emptyStat = (): WordStat => ({ seen: 0, correct: 0, wrong: 0, strength: 0, lastSeen: 0, collected: false });
+const emptyStat = (): WordStat => ({ seen: 0, correct: 0, wrong: 0, strength: 0, lastSeen: 0, collected: false, passed: {}, goodDays: [] });
+
+/**
+ * Öğrendi kuralı: en az 4 farklı test türünde ilk denemede doğru, en az 2 farklı gün,
+ * ve en az bir üretim kanıtı (kendisi söyledi ya da veli duydu).
+ */
+export function masteryOf(s?: WordStat): Mastery {
+  if (!s || (!s.collected && s.seen === 0)) return 'new';
+  const types = Object.keys(s.passed ?? {}).filter((k) => (s.passed?.[k as TestType] ?? 0) > 0);
+  const produced = (s.passed?.speak ?? 0) > 0 || (s.passed?.parent ?? 0) > 0;
+  if (types.length >= 4 && (s.goodDays?.length ?? 0) >= 2 && produced) return 'learned';
+  if (types.length > 0) return 'practicing';
+  return 'met';
+}
+
+export const masteryTypes = (s?: WordStat) => Object.keys(s?.passed ?? {}).filter((k) => (s?.passed?.[k as TestType] ?? 0) > 0) as TestType[];
 const emptyDay = (): DayLog => ({ seconds: 0, correct: 0, wrong: 0, spoken: 0 });
 
 type Ctx = {
@@ -52,7 +82,9 @@ type Ctx = {
   secondsLeft: number;
   asleep: boolean;
   companionLevel: number;
-  recordAnswer: (wordId: string, correct: boolean, opts?: { spoken?: boolean }) => void;
+  recordAnswer: (wordId: string, correct: boolean, test: TestType, opts?: { alsoAlt?: boolean }) => void;
+  markChunk: (id: ChunkId) => void;
+  setAgeBand: (b: AgeBand) => void;
   markSeen: (wordId: string) => void;
   collect: (wordId: string) => void;
   completeStep: (stepId: string, stars: number) => void;
@@ -126,11 +158,20 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   }, [ready]);
 
   const recordAnswer = useCallback<Ctx['recordAnswer']>(
-    (wordId, correct, opts) =>
+    (wordId, correct, test, opts) =>
       update((p) => {
-        const s = p.words[wordId] ?? emptyStat();
+        const s = { ...emptyStat(), ...(p.words[wordId] ?? {}) };
+        const d = today();
+        const passed = { ...s.passed };
+        if (correct) {
+          passed[test] = (passed[test] ?? 0) + 1;
+          if (opts?.alsoAlt) passed.alt = (passed.alt ?? 0) + 1;
+        }
+        const goodDays = correct && !s.goodDays.includes(d) ? [...s.goodDays, d].slice(-7) : s.goodDays;
         const next: WordStat = {
           ...s,
+          passed,
+          goodDays,
           seen: s.seen + 1,
           correct: s.correct + (correct ? 1 : 0),
           wrong: s.wrong + (correct ? 0 : 1),
@@ -142,7 +183,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
           ...d,
           correct: d.correct + (correct ? 1 : 0),
           wrong: d.wrong + (correct ? 0 : 1),
-          spoken: d.spoken + (opts?.spoken && correct ? 1 : 0),
+          spoken: d.spoken + ((test === 'speak' || test === 'parent') && correct ? 1 : 0),
         }));
       }),
     [update],
@@ -151,7 +192,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   const markSeen = useCallback(
     (wordId: string) =>
       update((p) => {
-        const s = p.words[wordId] ?? emptyStat();
+        const s = { ...emptyStat(), ...(p.words[wordId] ?? {}) };
         return { ...p, words: { ...p.words, [wordId]: { ...s, seen: s.seen + 1, lastSeen: Date.now() } } };
       }),
     [update],
@@ -160,7 +201,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   const collect = useCallback(
     (wordId: string) =>
       update((p) => {
-        const s = p.words[wordId] ?? emptyStat();
+        const s = { ...emptyStat(), ...(p.words[wordId] ?? {}) };
         if (s.collected) return p;
         return { ...p, words: { ...p.words, [wordId]: { ...s, collected: true } } };
       }),
@@ -176,6 +217,12 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       }),
     [update],
   );
+
+  const markChunk = useCallback(
+    (id: ChunkId) => update((p) => ({ ...p, chunks: { ...p.chunks, [id]: (p.chunks?.[id] ?? 0) + 1 } })),
+    [update],
+  );
+  const setAgeBand = useCallback((b: AgeBand) => update((p) => ({ ...p, ageBand: b })), [update]);
 
   const setDailyLimit = useCallback((min: number) => update((p) => ({ ...p, dailyLimitMin: min })), [update]);
   const setChildName = useCallback((name: string) => update((p) => ({ ...p, childName: name })), [update]);
@@ -221,6 +268,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       asleep: ready && progress.dailyLimitMin > 0 && secondsLeft <= 0,
       companionLevel: levelFor(progress.stars),
       recordAnswer,
+      markChunk,
+      setAgeBand,
       markSeen,
       collect,
       completeStep,
@@ -230,7 +279,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       reset,
       pickWords,
     }),
-    [progress, ready, secondsLeft, recordAnswer, markSeen, collect, completeStep, setDailyLimit, setChildName, grantBonus, reset, pickWords],
+    [progress, ready, secondsLeft, recordAnswer, markChunk, setAgeBand, markSeen, collect, completeStep, setDailyLimit, setChildName, grantBonus, reset, pickWords],
   );
 
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;

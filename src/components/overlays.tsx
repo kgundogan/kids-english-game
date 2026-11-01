@@ -5,7 +5,8 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Chunky, Paper } from '@/components/chunky';
 import { StarIcon } from '@/components/icons';
 import { Pofi } from '@/components/pofi';
-import { sayEnglish, sayTurkish } from '@/lib/voice';
+import { say } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
@@ -13,7 +14,7 @@ import { colors, type } from '@/theme';
 export function Celebration({ stars, onDone, newCards = [] }: { stars: number; onDone: () => void; newCards?: string[] }) {
   const { companionLevel } = useProgress();
   useEffect(() => {
-    sayEnglish(stars === 3 ? 'Amazing! Three stars!' : 'Well done!');
+    speak(say.celebrate(stars));
   }, [stars]);
 
   return (
@@ -44,7 +45,7 @@ export function Celebration({ stars, onDone, newCards = [] }: { stars: number; o
 /** Günlük süre dolunca Pofi uyur; oyun nazikçe biter. */
 export function SleepOverlay({ onParent }: { onParent: () => void }) {
   useEffect(() => {
-    sayTurkish('Pofi çok yoruldu, uyku vakti. Yarın yeni maceralar bizi bekliyor!');
+    speak(say.sleep);
   }, []);
   return (
     <View style={[styles.scrim, { backgroundColor: '#0B2F4AEE' }]}>

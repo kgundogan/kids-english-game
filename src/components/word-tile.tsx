@@ -52,6 +52,11 @@ export function WordTile({
         faceStyle={[styles.face, { width: size, height: size + (label ? 26 : 0) }]}
       >
         <Text style={{ fontSize: size * 0.52, lineHeight: size * 0.64 }}>{picture}</Text>
+        {(state === 'right' || state === 'wrong') && (
+          <View style={styles.badge}>
+            <Text style={{ fontSize: 22 }}>{state === 'right' ? '✅' : '❌'}</Text>
+          </View>
+        )}
         {label && (
           <View style={styles.labelWrap}>
             <Text style={[styles.label, { color: resolvedTone === 'paper' ? colors.ink : colors.white }]}>{label}</Text>
@@ -65,5 +70,6 @@ export function WordTile({
 const styles = StyleSheet.create({
   face: { paddingHorizontal: 0, paddingVertical: 4 },
   labelWrap: { marginTop: -2 },
+  badge: { position: 'absolute', top: 4, right: 4 },
   label: { fontFamily: 'Baloo2_800ExtraBold', fontSize: 20, lineHeight: 24 },
 });

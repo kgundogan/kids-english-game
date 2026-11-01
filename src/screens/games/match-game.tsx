@@ -4,7 +4,9 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from '
 
 import { Chunky } from '@/components/chunky';
 import { SpeakerIcon } from '@/components/icons';
-import { randomPraise, sayEnglish } from '@/lib/voice';
+import { say } from '@/content/lines';
+import { allWords } from '@/content/regions';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
@@ -69,7 +71,8 @@ export function MatchGame({ words, onFinish }: GameProps) {
 
   const press = (c: Card) => {
     if (busy.current || open.includes(c.key) || matched.includes(c.wordId)) return;
-    if (c.face === 'sound') sayEnglish(c.en);
+    const w = allWords().find((x) => x.id === c.wordId);
+    if (c.face === 'sound' && w) speak(say.word(w));
     const nextOpen = [...open, c.key];
     setOpen(nextOpen);
     if (nextOpen.length < 2) return;
@@ -82,8 +85,9 @@ export function MatchGame({ words, onFinish }: GameProps) {
         setMatched(nowMatched);
         setOpen([]);
         busy.current = false;
-        recordAnswer(a.wordId, true);
-        await sayEnglish(`${a.en}! ${randomPraise()}`);
+        recordAnswer(a.wordId, true, 'match');
+        const aw = allWords().find((x) => x.id === a.wordId);
+        if (aw) await speak(say.right(aw));
         if (nowMatched.length === cards.length / 2) {
           onFinish({ stars: misses.current <= 3 ? 3 : misses.current <= 7 ? 2 : 1 });
         }

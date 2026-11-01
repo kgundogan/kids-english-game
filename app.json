@@ -41,7 +41,8 @@
           "speechRecognitionPermission": "Pofi söylediğin kelimeyi anlamak için konuşma tanıma kullanır."
         }
       ],
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-audio"
     ],
     "scheme": "pofi",
     "experiments": {

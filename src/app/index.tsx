@@ -10,7 +10,8 @@ import { ParentGate } from '@/components/overlays';
 import { PofiSays } from '@/components/pofi-says';
 import { TopBar } from '@/components/top-bar';
 import { regions } from '@/content/regions';
-import { sayTurkish } from '@/lib/voice';
+import { say } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
@@ -32,7 +33,7 @@ export default function Home() {
         </Text>
         <View style={styles.say}>
           <PofiSays
-            text={firstTime ? 'Merhaba! Ben Pofi. Hayvan Koyu’na gidelim mi?' : 'Tekrar hoş geldin! Bugün nereye gidiyoruz?'}
+            text={(firstTime ? say.greetingFirst : say.greetingBack).text}
             mood="happy"
           />
         </View>
@@ -42,7 +43,7 @@ export default function Home() {
           starsByRegion={starsByRegion}
           onSelect={(r) => {
             if (r.locked) {
-              sayTurkish(`${r.name} henüz hazırlanıyor. Çok yakında!`);
+              speak(say.locked(r.name));
               return;
             }
             router.push({ pathname: '/region/[id]', params: { id: r.id } });

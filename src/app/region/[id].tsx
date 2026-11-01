@@ -8,11 +8,12 @@ import { LockIcon, SpeakerIcon, StarIcon } from '@/components/icons';
 import { PofiSays } from '@/components/pofi-says';
 import { TopBar } from '@/components/top-bar';
 import { getRegion, type StepKind } from '@/content/regions';
-import { sayEnglish, sayTurkish } from '@/lib/voice';
+import { say } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
-const kindIcon: Record<StepKind, string> = { meet: '👋', listen: '👂', match: '🃏', speak: '🎤', quest: '🗺️' };
+const kindIcon: Record<StepKind, string> = { book: '📖', listen: '👂', yesno: '✅', match: '🃏', find: '🔍', speak: '🎤', quest: '🗺️' };
 
 export default function RegionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,7 +35,7 @@ export default function RegionScreen() {
       <TopBar title={region.name} />
       <ScrollView contentContainerStyle={styles.content}>
         <PofiSays
-          text={nextIndex === -1 ? 'Koyun tüm sırlarını çözdün! İstediğin oyunu tekrar oynayabilirsin.' : `Sıradaki: ${region.steps[nextIndex].title}. Hazır mısın?`}
+          text={(nextIndex === -1 ? say.regionDone : say.regionNext(region.steps[nextIndex].title)).text}
           mood={nextIndex === -1 ? 'cheer' : 'happy'}
           size={96}
         />
@@ -90,10 +91,7 @@ export default function RegionScreen() {
               depth={4}
               faceStyle={{ minWidth: 48, paddingHorizontal: 10 }}
               accessibilityLabel="Görevi dinle"
-              onPress={async () => {
-                await sayTurkish(`Tableti bırak! ${offScreen.move} ve şunu söyle:`);
-                sayEnglish(offScreen.en, { slow: true });
-              }}
+              onPress={() => speak(say.offScreen(offScreen))}
             >
               <SpeakerIcon size={22} color={colors.white} />
             </Chunky>

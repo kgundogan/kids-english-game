@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Chunky } from '@/components/chunky';
 import { SpeakerIcon } from '@/components/icons';
 import { Pofi, type PofiMood } from '@/components/pofi';
-import { sayTurkish } from '@/lib/voice';
+import { say, type Line } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, radius, type } from '@/theme';
 
@@ -14,8 +15,11 @@ export function PofiSays({
   mood = 'happy',
   size = 110,
   autoSpeak = true,
+  line,
 }: {
   text: string;
+  /** Yazılandan farklı bir ses satırı (yoksa metin Türkçe okunur) */
+  line?: Line | Line[];
   mood?: PofiMood;
   size?: number;
   autoSpeak?: boolean;
@@ -23,7 +27,8 @@ export function PofiSays({
   const { companionLevel } = useProgress();
 
   useEffect(() => {
-    if (autoSpeak && text) sayTurkish(text);
+    if (autoSpeak && text) speak(line ?? say.hint(text));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, autoSpeak]);
 
   return (
@@ -33,7 +38,7 @@ export function PofiSays({
         <View style={styles.tail} />
         <View style={styles.bubble}>
           <Text style={[type.body, { color: colors.ink, flex: 1 }]}>{text}</Text>
-          <Chunky accessibilityLabel="Tekrar dinle" onPress={() => sayTurkish(text)} round={16} depth={4} faceStyle={styles.speak}>
+          <Chunky accessibilityLabel="Tekrar dinle" onPress={() => speak(line ?? say.hint(text))} round={16} depth={4} faceStyle={styles.speak}>
             <SpeakerIcon size={22} />
           </Chunky>
         </View>

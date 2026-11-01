@@ -5,7 +5,8 @@ import { Paper } from '@/components/chunky';
 import { TopBar } from '@/components/top-bar';
 import { WordTile } from '@/components/word-tile';
 import { regions } from '@/content/regions';
-import { sayEnglish } from '@/lib/voice';
+import { say } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
@@ -32,7 +33,7 @@ export default function Album() {
               {r.words.map((w) => {
                 const got = progress.words[w.id]?.collected;
                 return got ? (
-                  <WordTile key={w.id} picture={w.picture} label={w.en} size={104} tone={r.tone} onPress={() => sayEnglish(w.en)} />
+                  <WordTile key={w.id} picture={w.picture} label={w.en} size={104} tone={r.tone} onPress={() => speak(say.word(w))} />
                 ) : (
                   <WordTile key={w.id} picture="❔" label="?" size={104} accessibilityLabel="Henüz toplanmadı" />
                 );

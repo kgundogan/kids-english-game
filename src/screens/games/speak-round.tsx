@@ -6,7 +6,8 @@ import { Chunky, Paper } from '@/components/chunky';
 import { MicIcon, SpeakerIcon, StarIcon } from '@/components/icons';
 import type { Word } from '@/content/regions';
 import { heardMatches, normalize, useListen } from '@/lib/listen';
-import { randomPraise, sayEnglish } from '@/lib/voice';
+import { en, say } from '@/content/lines';
+import { speak } from '@/lib/voice';
 import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
@@ -32,7 +33,9 @@ export function SpeakRound({
   required?: string[];
   onDone: (mistakes: number) => void;
 }) {
-  const { recordAnswer } = useProgress();
+  const { recordAnswer, progress } = useProgress();
+  // İlk kez: önce model, sonra taklit. Sonra: önce kendisi hatırlasın, model sadece takılırsa.
+  const [firstTime] = useState(() => (progress.words[word.id]?.passed?.speak ?? 0) === 0);
   const listen = useListen();
   const [phase, setPhase] = useState<Phase>('model');
   const [heard, setHeard] = useState('');
@@ -45,8 +48,9 @@ export function SpeakRound({
     setPhase('model');
     let alive = true;
     (async () => {
-      await new Promise((r) => setTimeout(r, 300));
-      await sayEnglish(target, { slow: true });
+      const t = setTimeout(() => alive && setPhase('ready'), 3500);
+      await speak(phrase ? say.likeModel(word) : say.speakPrompt(word, firstTime));
+      clearTimeout(t);
       if (alive) setPhase('ready');
     })();
     return () => {
@@ -56,8 +60,8 @@ export function SpeakRound({
 
   const succeed = async () => {
     setPhase('right');
-    recordAnswer(word.id, tries.current === 0, { spoken: true });
-    await sayEnglish(randomPraise());
+    recordAnswer(word.id, tries.current === 0, phrase ? 'chunk' : 'speak');
+    await speak([en('[excited] Yes!', { pauseAfter: 120 }), phrase ? en(`${target}!`) : say.word(word)]);
     onDone(tries.current);
   };
 
@@ -72,12 +76,12 @@ export function SpeakRound({
     if (tries.current >= MAX_TRIES) {
       // Nazik düzeltme: hatayı söylemez, doğrusunu tekrar eder ve devam eder.
       setPhase('right');
-      recordAnswer(word.id, false, { spoken: true });
-      sayEnglish(`${target}! Good try!`).then(() => onDone(tries.current));
+      recordAnswer(word.id, false, phrase ? 'chunk' : 'speak');
+      speak(phrase ? [en(`${target}!`), say.praise[0]] : say.speakGiveUp(word)).then(() => onDone(tries.current));
       return;
     }
     setPhase('retry');
-    sayEnglish(`Say: ${target}`, { slow: true });
+    speak(phrase ? [say.likeModel(word)[0]] : say.speakRetry(word));
   };
 
   const onHoldStart = async () => {
@@ -102,10 +106,10 @@ export function SpeakRound({
               <StarIcon size={30} />
             </Animated.View>
           ))}
-        <Text style={[type.word, { color: colors.ink }]}>{target}</Text>
+        {(firstTime || phrase || phase === 'right' || phase === 'retry') && <Text style={[type.word, { color: colors.ink }]}>{target}</Text>}
       </Paper>
 
-      <Chunky tone="paper" onPress={() => sayEnglish(target, { slow: true })} round={18} depth={4} faceStyle={styles.again} accessibilityLabel="Pofi'den tekrar dinle">
+      <Chunky tone="paper" onPress={() => speak(phrase ? say.likeModel(word)[0] : say.wordSlow(word))} round={18} depth={4} faceStyle={styles.again} accessibilityLabel="Pofi'den tekrar dinle">
         <SpeakerIcon size={22} />
         <Text style={[type.label, { color: colors.ink }]}>Tekrar dinle</Text>
       </Chunky>

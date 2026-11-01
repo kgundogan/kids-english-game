@@ -7,12 +7,15 @@ Yol haritası: Claude Docs'taki "Çocuklar İçin Oyunlaştırılmış Dil Uygul
 ## Şu an oynanabilir olanlar (Faz 0 prototip)
 
 - **Ada haritası** — 4 bölge; *Hayvan Koyu* açık, diğerleri "yakında".
-- **Hayvan Koyu**, 10 kelime (Cambridge Pre-A1) + "I like ___" kalıbı, 5 adımlık yol:
-  1. **Tanış** — resim + ses + hareket (TPR). Çeviri yok. Kartlar albüme eklenir.
-  2. **Dinle-bul** — Pofi söyler, çocuk doğru resme dokunur.
-  3. **Eşleştir** — resim kartı ↔ ses kartı.
-  4. **Konuş-büyü** — bas-konuş ses tanıma; doğruysa büyü çalışır, 3 denemeden sonra nazik düzeltme.
-  5. **Kayıp yavrular** (bölüm sonu) — dinleme + konuşma + "I like cats" kalıbıyla konuşma.
+- **Hayvan Koyu**, 10 kelime (Cambridge Pre-A1), 7 adımlık yol:
+  1. **Sesli kitap** — dokun-dinle kitabının oyunu: iki sayfa sahne, dokunulan her hayvan adını söyler ("Cow. Cow! Moo! Hello, cow!") ve albüme girer.
+  2. **Dinle-bul** — Pofi söyler, çocuk doğru resme dokunur; son turlarda hayvan farklı bir görselle gelir.
+  3. **Evet mi, hayır mı?** — resim + "Cow?" sorusu, ✅ / ❌.
+  4. **Eşleştir** — resim kartı ↔ ses kartı.
+  5. **Saklambaç** — "Where is the cow?" kalıbı, sahnede arayıp bulma.
+  6. **Konuş-büyü** — ilk kez taklit, sonra kendi hatırlayarak söyleme; 3 denemeden sonra nazik düzeltme.
+  7. **Kayıp yavrular** (bölüm sonu) — her kelimeyi farklı yoldan sınar; 7+ yaşta okuma turu; "I like cats!" kalıbı.
+
 - **Görünmez aralıklı tekrar** — zorlanılan ve uzun süredir görülmeyen kelimeler öne çıkar.
 - **Kelime albümü** — toplanan her kelime bir koleksiyon kartı.
 - **Pofi büyür** — yıldızlarla başındaki filiz gelişir.
@@ -21,6 +24,25 @@ Yol haritası: Claude Docs'taki "Çocuklar İçin Oyunlaştırılmış Dil Uygul
 - **Veli alanı** (veli kapısı arkasında) — haftalık sade Türkçe özet, kelime haritası, süre ayarı.
 
 Bilerek yapılmayanlar: seri cezası, şans kutusu, reklam, sosyal alan, sonsuz kaydırma.
+
+## Sıfır seviye yaklaşımı
+
+- İngilizce önce **tek kelime** olarak gelir, cümle değil. "This is a…" gibi çocuğun bilmediği kelimeler yok.
+- Yönerge Türkçe, hedef dil İngilizce. Türkçe sesle İngilizce kelime okunmaz (aksanlı öğretmesin).
+- Kalıplar (**Hello / Yes / No / Where is…? / I like…**) bütün olarak, hep aynı işaretle (👋 ✅ ❌ 🔍 ❤️) verilir; ilk iki karşılaşmada Pofi durumu Türkçe anlatır, sonra Türkçe destek çekilir.
+- **"Öğrendi" kuralı:** en az 4 farklı test türünde ilk denemede doğru, en az 2 farklı gün, en az bir kez kendisi söyledi (ya da veli duydu).
+- **Veli köşesi:** her kelime için normal/yavaş telaffuz, Türkçe okunuş ipucu, evde nasıl sorulur ("What's this?", "Where is the cow?") ve "çocuğum söyledi" onayı.
+
+## Ses (ElevenLabs)
+
+Pofi'nin bütün cümleleri `src/content/lines.ts` içinde, her biri sabit bir kimlikle. Ses dosyası varsa o çalar, yoksa cihaz sesi.
+
+```bash
+npm run voice:dry                                    # satırları ve karakter sayısını listele
+ELEVENLABS_API_KEY=... ELEVENLABS_VOICE_ID=... npm run voice:generate
+```
+
+Dosyalar `assets/voice/` altına yazılır, `src/content/voice-manifest.ts` otomatik güncellenir. Var olan dosyalar atlanır; metin değişmedikçe tekrar ücret ödenmez.
 
 ## Çalıştırma
 
@@ -40,7 +62,7 @@ npm run typecheck
 | Uygulama | Expo SDK 58, React Native 0.88, TypeScript |
 | Navigasyon | Expo Router (`src/app`) |
 | Animasyon | Reanimated 4 (UI iş parçacığı), react-native-svg |
-| Ses | expo-speech (seslendirme), expo-speech-recognition (bas-konuş) |
+| Ses | ElevenLabs dosyaları (expo-audio) + yedek olarak expo-speech; bas-konuş için expo-speech-recognition |
 | Veri | AsyncStorage (cihaz içi); sunucu Faz 1'de |
 
 ## Klasörler
@@ -49,12 +71,12 @@ npm run typecheck
 src/
   app/            # sadece rotalar: ada, bölge, oyun, albüm, veli
   components/     # Pofi, karton düğme, ada haritası, kartlar, katmanlar
-  screens/games/  # Tanış, Dinle-bul, Eşleştir, Konuş-büyü, görev
-  content/        # bölgeler ve kelimeler
+  screens/games/  # Sesli kitap, Dinle-bul, Evet/Hayır, Eşleştir, Saklambaç, Konuş-büyü, görev
+  content/        # bölgeler, kelimeler, kalıplar, öğretmen metni (lines.ts)
   state/          # ilerleme, aralıklı tekrar, süre sınırı
   lib/            # ses (TTS) ve dinleme (STT)
   theme.ts        # renkler, yazı, "karton diorama" kalınlığı
-.claude/skills/   # Expo ve Callstack resmi agent skill'leri (MIT)
+.claude/skills/   # Expo, Callstack ve ElevenLabs resmi agent skill'leri (MIT)
 ```
 
 ## Sıradaki adımlar
