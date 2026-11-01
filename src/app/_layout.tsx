@@ -3,15 +3,35 @@ import { router, Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ParentGate, SleepOverlay } from '@/components/overlays';
+import { voiceProblem } from '@/lib/voice';
 import { ProgressProvider, useProgress } from '@/state/progress';
-import { colors } from '@/theme';
+import { colors, type } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** Ses çalınamıyorsa sessizce bozuk görünmesin: kullanıcıya ne yapacağını söyle. */
+function VoiceNotice() {
+  const [problem, setProblem] = useState<null | 'none' | 'failing'>(null);
+  useEffect(() => {
+    const id = setInterval(() => setProblem(voiceProblem()), 2500);
+    return () => clearInterval(id);
+  }, []);
+  if (!problem) return null;
+  return (
+    <View style={{ position: 'absolute', left: 12, right: 12, bottom: 16, backgroundColor: colors.ink, borderRadius: 16, padding: 12, zIndex: 40 }} accessibilityRole="alert">
+      <Text style={[type.small, { color: colors.white }]}>
+        {problem === 'none'
+          ? 'Bu tarayıcı sesli okumayı desteklemiyor. Oyunu Chrome, Safari ya da Edge’de açın.'
+          : 'Ses çalınamadı. Cihazın sesinin açık olduğundan emin olun; olmazsa sayfayı Chrome, Safari ya da Edge’de açın.'}
+      </Text>
+    </View>
+  );
+}
 
 function Shell() {
   const { asleep, ready } = useProgress();
@@ -26,6 +46,7 @@ function Shell() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.sky }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.sky } }} />
+      <VoiceNotice />
       {showSleep && <SleepOverlay onParent={() => setGate(true)} />}
       <ParentGate
         visible={gate}
