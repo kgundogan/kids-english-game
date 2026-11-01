@@ -11,7 +11,7 @@ import { useProgress } from '@/state/progress';
 import { colors, type } from '@/theme';
 
 /** Bölüm sonu kutlaması: nadir an, hareket bütçesi burada harcanır. */
-export function Celebration({ stars, onDone, newCards = [] }: { stars: number; onDone: () => void; newCards?: string[] }) {
+export function Celebration({ stars, onDone, newCards = [], note }: { stars: number; onDone: () => void; newCards?: string[]; note?: string }) {
   const { companionLevel } = useProgress();
   useEffect(() => {
     speak(say.celebrate(stars));
@@ -35,6 +35,7 @@ export function Celebration({ stars, onDone, newCards = [] }: { stars: number; o
               Albümüne {newCards.length} yeni kart eklendi: {newCards.join(' ')}
             </Text>
           )}
+          {note && <Text style={[type.body, { color: colors.inkSoft, textAlign: 'center' }]}>{note}</Text>}
           <Chunky tone="leaf" label="Devam" onPress={onDone} style={{ alignSelf: 'stretch', marginTop: 8 }} />
         </Paper>
       </Animated.View>

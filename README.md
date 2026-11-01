@@ -7,7 +7,11 @@ Yol haritası: Claude Docs'taki "Çocuklar İçin Oyunlaştırılmış Dil Uygul
 ## Şu an oynanabilir olanlar (Faz 0 prototip)
 
 - **Ada haritası** — 4 bölge; *Hayvan Koyu* açık, diğerleri "yakında".
-- **Hayvan Koyu**, 10 kelime (Cambridge Pre-A1), 7 adımlık yol:
+- **Canlı dünya prototipi: Pofi'nin Çiftliği, 1. gün "Fırtınadan sonra"** — tek sahne, her şeye dokunulur ve konuşur; oyunlar ayrı ekran değil sahnedeki olaylar:
+  1. Saklananları bul: çalıya, samanlığa, sandığa dokun, arkasından hayvan çıksın (kapak kaldırma sürprizi, ilk karşılaşma).
+  2. "Where is the duck?": sahnede bul (dinleyip tanıma).
+  3. Akşam: hayvanları ahıra çağır; önce dokunarak, son ikisi sesle (üretim). Gece "Good night!", ahır çatısı onarılır, yarının merakı bırakılır.
+- **Antrenman oyunları** (Hayvan Koyu, 10 kelime, Cambridge Pre-A1):
   1. **Sesli kitap** — dokun-dinle kitabının oyunu: iki sayfa sahne, dokunulan her hayvan adını söyler ("Cow. Cow! Moo! Hello, cow!") ve albüme girer.
   2. **Dinle-bul** — Pofi söyler, çocuk doğru resme dokunur; son turlarda hayvan farklı bir görselle gelir.
   3. **Evet mi, hayır mı?** — resim + "Cow?" sorusu, ✅ / ❌.

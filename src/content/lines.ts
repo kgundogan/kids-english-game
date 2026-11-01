@@ -61,6 +61,24 @@ export const say = {
   bookFirst: tr('Bu bizim sesli kitabımız. Sayfadaki hayvanlara dokun, kim olduklarını duy!'),
   bookNext: tr('Yeni sayfa! Burada kimler saklanıyor?'),
 
+  // ——— Canlı dünya: Pofi'nin Çiftliği, 1. gün ———
+  farm: {
+    teaser: tr('Çiftlikte büyük bir fırtına oldu ve hayvanlar saklandı! Bana yardım eder misin?'),
+    teaserDone: tr('Çiftlik kurtuldu! İstersen yeniden oynayabilir ya da antrenman oyunlarına bakabilirsin.'),
+    story: tr('Dün gece büyük bir fırtına oldu! Hayvanlar korkup saklandı. Hadi onları bulalım. Saklanabilecekleri yerlere dokun!'),
+    found: (n: number, total: number) => tr(n === total - 1 ? 'Bir hayvan kaldı!' : `${total - n} hayvan daha saklanıyor.`),
+    allFound: tr('Hepsini buldun! Ama bu hayvanlar çok yaramaz, hep saklanıyorlar. Hangisini sorarsam ona dokun.'),
+    callStart: tr('Akşam oluyor. Hayvanları ahıra çağıralım! Hangisini söylersem ona dokun, ahıra yürüsün.'),
+    callVoice: tr('Şimdi sen çağır! Mor düğmeye basılı tut ve hayvanın adını söyle.'),
+    callShadow: tr('Benden sonra söyle ve düğmeye bas.'),
+    whoIsIt: tr('Parlayan hayvan kim? Adını söyleyerek çağır!'),
+    comeIn: (w: Word) => en(`${cap(w.en)}! Come in!`),
+    goodNight: (w: Word) => en(`Good night, ${w.en}!`),
+    night: [tr('Bütün hayvanlar ahırda. Bugün çiftliği kurtardın!', { pauseAfter: 300 }), en('[warmly] Good night!')],
+    repaired: tr('Fırtınanın kırdığı ahır çatısını onardık. Yarın yağmur yağacak; bakalım kimler ıslanacak!'),
+    scenery: (word: string) => en(`${cap(word)}.`),
+  },
+
   // ——— Dinle-bul ———
   ask: (w: Word) => en(`${cap(w.en)}.`),
   right: (w: Word): Line[] => [en('[excited] Yes!', { pauseAfter: 150 }), en(`${cap(w.en)}!`)],
@@ -161,6 +179,11 @@ export function allLines(): Line[] {
     });
   }
   (Object.keys(chunks) as ChunkId[]).forEach((id) => push([...say.chunkIntro(id, true), ...say.chunkIntro(id, false)]));
+  for (const r of regions)
+    r.words.forEach((w) => push([say.farm.comeIn(w), say.farm.goodNight(w)]));
+  for (let n = 0; n < 8; n++) push(say.farm.found(n, 8));
+  ['tree', 'sun', 'flower', 'barn'].forEach((s) => push(say.farm.scenery(s)));
+  push([say.farm.teaser, say.farm.teaserDone, say.farm.whoIsIt, say.farm.story, say.farm.allFound, say.farm.callStart, say.farm.callVoice, say.farm.callShadow, ...say.farm.night, say.farm.repaired]);
   push([say.bookFirst, say.bookNext, say.read(), say.likeAsk(), ...say.praise, ...say.celebrate(3), ...say.celebrate(2), say.greetingFirst, say.greetingBack, say.regionDone, say.sleep]);
   const seen = new Set<string>();
   return out.filter((l) => (seen.has(l.id) ? false : (seen.add(l.id), true)));

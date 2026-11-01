@@ -3,7 +3,7 @@
 // bütün olarak, her zaman aynı jest/simgeyle ve bir durum içinde veriyoruz.
 // İlk iki karşılaşmada Pofi durumu Türkçe kısaca anlatır (iskele), sonra Türkçe destek çekilir.
 
-export type ChunkId = 'hello' | 'yes' | 'no' | 'where' | 'like';
+export type ChunkId = 'hello' | 'yes' | 'no' | 'where' | 'like' | 'night';
 
 export type Chunk = {
   id: ChunkId;
@@ -45,6 +45,13 @@ export const chunks: Record<ChunkId, Chunk> = {
     sign: '🔍',
     scaffold: 'Bir şeyi ararken İngilizcede "Where is…?" diye sorarız. Büyüteci görünce arama zamanı!',
     example: 'Where is the cow?',
+  },
+  night: {
+    id: 'night',
+    en: 'Good night!',
+    sign: '🌙',
+    scaffold: 'Uyku vakti gelince İngilizcede "Good night!" deriz. Ay çıkınca iyi geceler deme zamanı!',
+    example: 'Good night, cow!',
   },
   like: {
     id: 'like',

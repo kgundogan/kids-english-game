@@ -34,15 +34,29 @@ export default function RegionScreen() {
     <LinearGradient colors={[colors.sky, colors.sand]} locations={[0, 0.5]} style={{ flex: 1 }}>
       <TopBar title={region.name} />
       <ScrollView contentContainerStyle={styles.content}>
-        <PofiSays
-          text={(nextIndex === -1 ? say.regionDone : say.regionNext(region.steps[nextIndex].title)).text}
-          mood={nextIndex === -1 ? 'cheer' : 'happy'}
-          size={96}
-        />
+        <PofiSays text={(progress.steps['farm-d1'] ? say.farm.teaserDone : say.farm.teaser).text} mood="happy" size={96} />
 
+        {/* Canlı dünya prototipi: günün macerası */}
+        <Chunky tone="leaf" onPress={() => router.push({ pathname: '/world/[id]', params: { id: region.id } })} round={30} depth={9} faceStyle={styles.adventure} accessibilityLabel="Günün macerası: Fırtınadan sonra">
+          <Text style={{ fontSize: 54, lineHeight: 64 }}>🌪️</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[type.label, { color: '#E3F7DF' }]}>Günün macerası · 1. gün</Text>
+            <Text style={[type.title, { color: colors.white }]}>Fırtınadan sonra</Text>
+          </View>
+          {progress.steps['farm-d1'] ? (
+            <View style={{ flexDirection: 'row' }}>
+              {[1, 2, 3].map((n) => (
+                <StarIcon key={n} size={20} color={n <= (progress.steps['farm-d1'] ?? 0) ? colors.sun : '#BFE3B8'} />
+              ))}
+            </View>
+          ) : null}
+        </Chunky>
+
+        <Text style={[type.label, { color: colors.inkSoft, marginTop: 8 }]}>Antrenman oyunları</Text>
         <View style={styles.path}>
           {region.steps.map((step, i) => {
-            const locked = i > 0 && !progress.steps[region.steps[i - 1].id];
+            // Prototip döneminde antrenman oyunları serbest
+            const locked = false;
             const earned = progress.steps[step.id] ?? 0;
             const isNext = i === nextIndex;
             return (
@@ -104,6 +118,7 @@ export default function RegionScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 48, gap: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  adventure: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 20 },
   path: { paddingHorizontal: 24, gap: 12, paddingVertical: 8 },
   stone: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '62%', minWidth: 230 },
   stoneFace: { width: 88, height: 88, paddingHorizontal: 0 },
